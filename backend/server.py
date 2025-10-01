@@ -119,17 +119,12 @@ class FinancialSummary(BaseModel):
 
 # Helper functions
 def verify_password(plain_password, hashed_password):
-    try:
-        # Truncate password if too long for bcrypt
-        password_bytes = plain_password.encode('utf-8')[:72]
-        return pwd_context.verify(password_bytes.decode('utf-8'), hashed_password)
-    except:
-        return False
+    # Simple hash verification for MVP
+    return hashlib.sha256((plain_password + SECRET_KEY).encode()).hexdigest() == hashed_password
 
 def get_password_hash(password):
-    # Truncate password if too long for bcrypt
-    password_bytes = password.encode('utf-8')[:72]
-    return pwd_context.hash(password_bytes.decode('utf-8'))
+    # Simple hash for MVP
+    return hashlib.sha256((password + SECRET_KEY).encode()).hexdigest()
 
 def create_access_token(data: dict):
     to_encode = data.copy()
