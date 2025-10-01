@@ -100,7 +100,7 @@ export default function Index() {
 
   const loadFinancialSummary = async () => {
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/financial-summary`, {
+      const response = await fetch('http://localhost:8001/api/financial-summary', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
