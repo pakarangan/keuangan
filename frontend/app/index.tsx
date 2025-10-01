@@ -11,51 +11,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  company_name: string;
-}
-
-interface FinancialSummary {
-  total_aset: number;
-  total_utang: number;
-  total_pendapatan: number;
-  total_modal: number;
-  total_biaya: number;
-  net_income: number;
-}
+import { router } from 'expo-router';
 
 export default function Index() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [summary, setSummary] = useState<FinancialSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
-  
-  // Login form state
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
-
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  useEffect(() => {
-    if (isAuthenticated && token) {
-      loadFinancialSummary();
-    }
-  }, [isAuthenticated, token]);
-
-  const checkAuthStatus = async () => {
-    // In a real app, you would check for stored token
-    setLoading(false);
-  };
 
   const login = async () => {
     if (!username.trim() || !password.trim()) {
@@ -65,7 +26,6 @@ export default function Index() {
 
     setLoginLoading(true);
     try {
-      // Use localhost for direct API connection
       const loginUrl = 'http://localhost:8001/api/auth/login';
       
       const response = await fetch(loginUrl, {
@@ -82,11 +42,14 @@ export default function Index() {
       const data = await response.json();
 
       if (response.ok) {
-        setToken(data.access_token);
-        setUser(data.user);
-        setIsAuthenticated(true);
-        setUsername('');
-        setPassword('');
+        // Navigate to dashboard with user data
+        router.push({
+          pathname: '/dashboard',
+          params: { 
+            token: data.access_token,
+            user: JSON.stringify(data.user)
+          }
+        });
       } else {
         Alert.alert('Login Failed', data.detail || 'Invalid credentials');
       }
@@ -98,210 +61,77 @@ export default function Index() {
     }
   };
 
-  const loadFinancialSummary = async () => {
-    try {
-      const response = await fetch('http://localhost:8001/api/financial-summary', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSummary(data);
-      } else {
-        console.error('Failed to load financial summary');
-      }
-    } catch (error) {
-      console.error('Error loading financial summary:', error);
-    }
-  };
-
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-    setSummary(null);
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-    }).format(amount);
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#2196F3" />
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.loginContainer}>
-            <View style={styles.headerContainer}>
-              <MaterialIcons name="account-balance" size={60} color="#2196F3" />
-              <Text style={styles.appTitle}>Pencatatan Keuangan</Text>
-              <Text style={styles.appSubtitle}>Kelola keuangan bisnis Anda dengan mudah</Text>
-            </View>
-
-            <View style={styles.loginForm}>
-              <Text style={styles.formTitle}>Masuk ke Akun Anda</Text>
-              
-              <View style={styles.inputContainer}>
-                <MaterialIcons name="person" size={20} color="#666" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Username"
-                  value={username}
-                  onChangeText={setUsername}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <MaterialIcons name="lock" size={20} color="#666" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                />
-              </View>
-
-              <TouchableOpacity
-                style={[styles.loginButton, loginLoading && styles.loginButtonDisabled]}
-                onPress={login}
-                disabled={loginLoading}
-              >
-                {loginLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.loginButtonText}>Masuk</Text>
-                )}
-              </TouchableOpacity>
-
-              <View style={styles.registerPrompt}>
-                <Text style={styles.registerText}>Belum punya akun? </Text>
-                <TouchableOpacity>
-                  <Text style={styles.registerLink}>Daftar di sini</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.featuresContainer}>
-              <Text style={styles.featuresTitle}>Fitur Aplikasi:</Text>
-              <View style={styles.featuresList}>
-                <View style={styles.featureItem}>
-                  <MaterialIcons name="photo-camera" size={16} color="#4CAF50" />
-                  <Text style={styles.featureText}>Scan Receipt</Text>
-                </View>
-                <View style={styles.featureItem}>
-                  <MaterialIcons name="assessment" size={16} color="#4CAF50" />
-                  <Text style={styles.featureText}>Laporan Keuangan</Text>
-                </View>
-                <View style={styles.featureItem}>
-                  <MaterialIcons name="file-download" size={16} color="#4CAF50" />
-                  <Text style={styles.featureText}>Export PDF/Excel</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.welcomeText}>Selamat datang, {user?.username}!</Text>
-            <Text style={styles.companyText}>{user?.company_name}</Text>
+        <View style={styles.loginContainer}>
+          <View style={styles.headerContainer}>
+            <MaterialIcons name="account-balance" size={60} color="#2196F3" />
+            <Text style={styles.appTitle}>Pencatatan Keuangan</Text>
+            <Text style={styles.appSubtitle}>Kelola keuangan bisnis Anda dengan mudah</Text>
           </View>
-          <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-            <MaterialIcons name="logout" size={24} color="#f44336" />
-          </TouchableOpacity>
-        </View>
 
-        {summary && (
-          <View style={styles.summaryContainer}>
-            <Text style={styles.summaryTitle}>Ringkasan Keuangan</Text>
+          <View style={styles.loginForm}>
+            <Text style={styles.formTitle}>Masuk ke Akun Anda</Text>
             
-            <View style={styles.summaryGrid}>
-              <View style={[styles.summaryCard, styles.assetCard]}>
-                <MaterialIcons name="account-balance-wallet" size={24} color="#4CAF50" />
-                <Text style={styles.summaryLabel}>Total Aset</Text>
-                <Text style={styles.summaryAmount}>{formatCurrency(summary.total_aset)}</Text>
-              </View>
-
-              <View style={[styles.summaryCard, styles.liabilityCard]}>
-                <MaterialIcons name="credit-card" size={24} color="#f44336" />
-                <Text style={styles.summaryLabel}>Total Utang</Text>
-                <Text style={styles.summaryAmount}>{formatCurrency(summary.total_utang)}</Text>
-              </View>
-
-              <View style={[styles.summaryCard, styles.revenueCard]}>
-                <MaterialIcons name="trending-up" size={24} color="#2196F3" />
-                <Text style={styles.summaryLabel}>Pendapatan</Text>
-                <Text style={styles.summaryAmount}>{formatCurrency(summary.total_pendapatan)}</Text>
-              </View>
-
-              <View style={[styles.summaryCard, styles.expenseCard]}>
-                <MaterialIcons name="trending-down" size={24} color="#FF9800" />
-                <Text style={styles.summaryLabel}>Biaya</Text>
-                <Text style={styles.summaryAmount}>{formatCurrency(summary.total_biaya)}</Text>
-              </View>
+            <View style={styles.inputContainer}>
+              <MaterialIcons name="person" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                style={styles.textInput}
+                placeholder="Username"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
             </View>
 
-            <View style={[styles.netIncomeCard, summary.net_income >= 0 ? styles.profitCard : styles.lossCard]}>
-              <MaterialIcons 
-                name={summary.net_income >= 0 ? "monetization-on" : "money-off"} 
-                size={32} 
-                color={summary.net_income >= 0 ? "#4CAF50" : "#f44336"} 
+            <View style={styles.inputContainer}>
+              <MaterialIcons name="lock" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                style={styles.textInput}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
               />
-              <Text style={styles.netIncomeLabel}>Laba Bersih</Text>
-              <Text style={[styles.netIncomeAmount, summary.net_income >= 0 ? styles.profit : styles.loss]}>
-                {formatCurrency(summary.net_income)}
-              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.loginButton, loginLoading && styles.loginButtonDisabled]}
+              onPress={login}
+              disabled={loginLoading}
+            >
+              {loginLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.loginButtonText}>Masuk</Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.testCredentials}>
+              <Text style={styles.testTitle}>Kredensial Test:</Text>
+              <Text style={styles.testText}>Username: testuser</Text>
+              <Text style={styles.testText}>Password: password123</Text>
             </View>
           </View>
-        )}
 
-        <View style={styles.actionsContainer}>
-          <Text style={styles.actionsTitle}>Aksi Cepat</Text>
-          
-          <View style={styles.actionsGrid}>
-            <TouchableOpacity style={styles.actionButton}>
-              <MaterialIcons name="add-circle" size={32} color="#2196F3" />
-              <Text style={styles.actionText}>Tambah Transaksi</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionButton}>
-              <MaterialIcons name="photo-camera" size={32} color="#4CAF50" />
-              <Text style={styles.actionText}>Scan Receipt</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionButton}>
-              <MaterialIcons name="assessment" size={32} color="#FF9800" />
-              <Text style={styles.actionText}>Lihat Laporan</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionButton}>
-              <MaterialIcons name="account-balance" size={32} color="#9C27B0" />
-              <Text style={styles.actionText}>Kelola Akun</Text>
-            </TouchableOpacity>
+          <View style={styles.featuresContainer}>
+            <Text style={styles.featuresTitle}>Fitur Aplikasi:</Text>
+            <View style={styles.featuresList}>
+              <View style={styles.featureItem}>
+                <MaterialIcons name="photo-camera" size={16} color="#4CAF50" />
+                <Text style={styles.featureText}>Scan Receipt</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <MaterialIcons name="assessment" size={16} color="#4CAF50" />
+                <Text style={styles.featureText}>Laporan Keuangan</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <MaterialIcons name="file-download" size={16} color="#4CAF50" />
+                <Text style={styles.featureText}>Export PDF/Excel</Text>
+              </View>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -317,16 +147,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 16,
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
   },
   loginContainer: {
     flex: 1,
@@ -401,19 +221,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  registerPrompt: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
+  testCredentials: {
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: '#E8F5E8',
+    borderRadius: 8,
   },
-  registerText: {
+  testTitle: {
     fontSize: 14,
-    color: '#666',
-  },
-  registerLink: {
-    fontSize: 14,
-    color: '#2196F3',
     fontWeight: 'bold',
+    color: '#4CAF50',
+    marginBottom: 4,
+  },
+  testText: {
+    fontSize: 12,
+    color: '#666',
   },
   featuresContainer: {
     backgroundColor: '#fff',
@@ -442,146 +264,5 @@ const styles = StyleSheet.create({
   featureText: {
     fontSize: 14,
     color: '#666',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  welcomeText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  companyText: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  logoutButton: {
-    padding: 8,
-  },
-  summaryContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 24,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 16,
-  },
-  summaryCard: {
-    flex: 1,
-    minWidth: '48%',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    elevation: 1,
-  },
-  assetCard: {
-    backgroundColor: '#E8F5E8',
-  },
-  liabilityCard: {
-    backgroundColor: '#FFEBEE',
-  },
-  revenueCard: {
-    backgroundColor: '#E3F2FD',
-  },
-  expenseCard: {
-    backgroundColor: '#FFF3E0',
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  summaryAmount: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  netIncomeCard: {
-    padding: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    elevation: 2,
-  },
-  profitCard: {
-    backgroundColor: '#E8F5E8',
-  },
-  lossCard: {
-    backgroundColor: '#FFEBEE',
-  },
-  netIncomeLabel: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 8,
-  },
-  netIncomeAmount: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 8,
-  },
-  profit: {
-    color: '#4CAF50',
-  },
-  loss: {
-    color: '#f44336',
-  },
-  actionsContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  actionsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  actionButton: {
-    flex: 1,
-    minWidth: '48%',
-    alignItems: 'center',
-    padding: 20,
-    borderRadius: 8,
-    backgroundColor: '#f9f9f9',
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  actionText: {
-    fontSize: 12,
-    color: '#333',
-    marginTop: 8,
-    textAlign: 'center',
-    fontWeight: '500',
   },
 });
