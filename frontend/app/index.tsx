@@ -63,9 +63,15 @@ export default function Index() {
       return;
     }
 
+    console.log('Starting login process...');
+    console.log('Backend URL:', EXPO_PUBLIC_BACKEND_URL);
+    
     setLoginLoading(true);
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/auth/login`, {
+      const loginUrl = `${EXPO_PUBLIC_BACKEND_URL}/api/auth/login`;
+      console.log('Login URL:', loginUrl);
+      
+      const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,15 +82,21 @@ export default function Index() {
         }),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (response.ok) {
+        console.log('Login successful, setting auth state');
         setToken(data.access_token);
         setUser(data.user);
         setIsAuthenticated(true);
         setUsername('');
         setPassword('');
       } else {
+        console.log('Login failed:', data.detail);
         Alert.alert('Login Failed', data.detail || 'Invalid credentials');
       }
     } catch (error) {
