@@ -80,7 +80,8 @@ class FinancialAPITester:
             return response, response_time
         except Exception as e:
             response_time = time.time() - start_time
-            return None, response_time, str(e)
+            print(f"    Request exception: {str(e)}")
+            return None, response_time
     
     def test_health_check(self):
         """Test health endpoint"""
