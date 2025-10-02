@@ -156,27 +156,93 @@ backend:
 frontend:
   - task: "Login/Authentication UI"
     implemented: true
-    working: false
+    working: true
     file: "index.tsx"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Login form displays correctly but authentication not working properly in browser"
+      - working: true
+        agent: "testing"
+        comment: "FIXED: API URL issue resolved. Login working perfectly with testuser/password123. JWT authentication successful, proper navigation to dashboard with user data and token. Network requests show successful API calls to /api/auth/login and /api/financial-summary."
 
   - task: "Dashboard UI"
     implemented: true
-    working: "NA"
-    file: "index.tsx"
+    working: true
+    file: "dashboard.tsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Dashboard UI implemented but needs testing after login fix"
+      - working: true
+        agent: "testing"
+        comment: "Dashboard fully functional. Displays user info (testuser, PT Test Company), financial summary cards (Total Aset: Rp 50,000.00, Total Utang: Rp 0.00, Pendapatan: Rp 0.00, Biaya: Rp 0.00, Laba Bersih: Rp 0.00), and action buttons working."
+
+  - task: "Add Transaction Screen"
+    implemented: true
+    working: true
+    file: "add-transaction.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Add transaction screen working perfectly. Form elements present (account selector, date, description, amount, receipt upload). Navigation from dashboard working. Account selector modal functional. Image picker for receipts working. Back navigation working."
+
+  - task: "Accounts Management Screen"
+    implemented: true
+    working: true
+    file: "accounts.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Accounts screen implemented and accessible. Shows empty state correctly when no accounts exist. Navigation working properly."
+
+  - task: "Reports Screen"
+    implemented: true
+    working: true
+    file: "reports.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Reports screen fully functional. Shows Laporan Laba Rugi and Neraca options. PDF and Excel download buttons present and clickable. Navigation working properly."
+
+  - task: "Mobile Responsiveness"
+    implemented: true
+    working: true
+    file: "all screens"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Mobile responsiveness excellent. Tested on 390x844 viewport (iPhone 13/14 size). Touch-friendly UI elements, proper spacing, responsive layout, smooth navigation transitions."
+
+  - task: "API Integration"
+    implemented: true
+    working: true
+    file: "all screens"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "FIXED: All API calls now use EXPO_PUBLIC_BACKEND_URL environment variable instead of hardcoded localhost URLs. Authentication, financial summary, accounts, transactions, and reports APIs all working correctly."
 
 metadata:
   created_by: "main_agent"
