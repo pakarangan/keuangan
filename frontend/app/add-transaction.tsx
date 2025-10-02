@@ -95,10 +95,60 @@ export default function AddTransaction() {
     }
   };
 
+  const processWithOCR = async (imageBase64: string) => {
+    try {
+      const response = await fetch('http://localhost:8001/api/ocr/extract-receipt', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: imageBase64
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.extracted_data) {
+          const { merchant_name, total_amount, date: extractedDate } = data.extracted_data;
+          
+          // Auto-fill form with extracted data
+          if (merchant_name) {
+            setDescription(merchant_name);
+          }
+          if (total_amount > 0) {
+            setAmount(total_amount.toString());
+          }
+          if (extractedDate) {
+            // Try to format the date
+            try {
+              const formattedDate = new Date(extractedDate).toISOString().split('T')[0];
+              setDate(formattedDate);
+            } catch (e) {
+              // Keep original date if formatting fails
+            }
+          }
+          
+          Alert.alert(
+            'OCR Berhasil!', 
+            'Data dari receipt berhasil diekstrak. Silakan periksa dan edit jika diperlukan.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert('OCR Error', 'Gagal mengekstrak data dari receipt.');
+        }
+      }
+    } catch (error) {
+      console.error('OCR Error:', error);
+      Alert.alert('Error', 'Gagal memproses receipt dengan OCR.');
+    }
+  };
+
   const showImagePicker = () => {
     Alert.alert(
-      'Pilih Receipt',
-      'Bagaimana Anda ingin menambahkan receipt?',
+      'Scan Receipt',
+      'Pilih cara untuk menambahkan receipt:',
       [
         { text: 'Batal', style: 'cancel' },
         { text: 'Ambil Foto', onPress: takePhoto },
