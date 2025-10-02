@@ -390,6 +390,247 @@ async def delete_transaction(transaction_id: str, current_user: dict = Depends(g
     
     return {"message": "Transaction deleted successfully"}
 
+# Report Generation Endpoints
+@app.get("/api/reports/profit-loss/pdf")
+async def generate_profit_loss_pdf(
+    start_date: str = Query(..., description="Start date (YYYY-MM-DD)"),
+    end_date: str = Query(..., description="End date (YYYY-MM-DD)"),
+    current_user: dict = Depends(get_current_user)
+):
+    from io import BytesIO
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    
+    # Get transactions in date range
+    start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
+    end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
+    
+    accounts = await db.accounts.find({"user_id": current_user["id"]}).to_list(None)
+    
+    # Calculate totals by category
+    totals = {
+        "Pendapatan": 0,
+        "Biaya": 0,
+        "Aset": 0,
+        "Utang": 0,
+        "Modal": 0
+    }
+    
+    for account in accounts:
+        balance = float(account.get("balance", 0))
+        category = account["category"]
+        if category in totals:
+            totals[category] += balance
+    
+    # Create PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=72, bottomMargin=72)
+    
+    styles = getSampleStyleSheet()
+    story = []
+    
+    # Title
+    title = Paragraph(f"<b>{current_user['company_name']}</b><br/>LAPORAN LABA RUGI<br/>Periode: {start_date} s/d {end_date}", 
+                     styles['Title'])
+    story.append(title)
+    story.append(Spacer(1, 20))
+    
+    # Revenue section
+    revenue_data = [
+        ['PENDAPATAN', ''],
+        ['Total Pendapatan', f"Rp {totals['Pendapatan']:,.2f}"],
+        ['', ''],
+        ['BIAYA OPERASIONAL', ''],
+        ['Total Biaya', f"Rp {totals['Biaya']:,.2f}"],
+        ['', ''],
+        ['LABA BERSIH', f"Rp {totals['Pendapatan'] - totals['Biaya']:,.2f}"]
+    ]
+    
+    table = Table(revenue_data, colWidths=[4*inch, 2*inch])
+    table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 3), (-1, 3), 'Helvetica-Bold'),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('LINEBELOW', (0, 1), (-1, 1), 1, colors.black),
+        ('LINEBELOW', (0, 4), (-1, 4), 1, colors.black),
+        ('LINEABOVE', (0, -1), (-1, -1), 2, colors.black),
+        ('LINEBELOW', (0, -1), (-1, -1), 2, colors.black),
+    ]))
+    
+    story.append(table)
+    doc.build(story)
+    buffer.seek(0)
+    
+    return StreamingResponse(
+        buffer, 
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=profit_loss_{start_date}_{end_date}.pdf"}
+    )
+
+@app.get("/api/reports/profit-loss/excel")  
+async def generate_profit_loss_excel(
+    start_date: str = Query(..., description="Start date (YYYY-MM-DD)"),
+    end_date: str = Query(..., description="End date (YYYY-MM-DD)"),
+    current_user: dict = Depends(get_current_user)
+):
+    from io import BytesIO
+    import openpyxl
+    from openpyxl.styles import Font, Alignment
+    
+    # Get data
+    accounts = await db.accounts.find({"user_id": current_user["id"]}).to_list(None)
+    
+    totals = {
+        "Pendapatan": 0,
+        "Biaya": 0,
+        "Aset": 0,
+        "Utang": 0,
+        "Modal": 0
+    }
+    
+    for account in accounts:
+        balance = float(account.get("balance", 0))
+        category = account["category"]
+        if category in totals:
+            totals[category] += balance
+    
+    # Create Excel workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Profit & Loss"
+    
+    # Headers
+    ws['A1'] = current_user['company_name']
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A2'] = "LAPORAN LABA RUGI"
+    ws['A2'].font = Font(bold=True, size=12)
+    ws['A3'] = f"Periode: {start_date} s/d {end_date}"
+    
+    # Data
+    row = 5
+    ws[f'A{row}'] = "PENDAPATAN"
+    ws[f'A{row}'].font = Font(bold=True)
+    row += 1
+    ws[f'A{row}'] = "Total Pendapatan"
+    ws[f'B{row}'] = totals['Pendapatan']
+    ws[f'B{row}'].number_format = '"Rp "#,##0.00'
+    
+    row += 2
+    ws[f'A{row}'] = "BIAYA OPERASIONAL"
+    ws[f'A{row}'].font = Font(bold=True)
+    row += 1
+    ws[f'A{row}'] = "Total Biaya"
+    ws[f'B{row}'] = totals['Biaya']
+    ws[f'B{row}'].number_format = '"Rp "#,##0.00'
+    
+    row += 2
+    ws[f'A{row}'] = "LABA BERSIH"
+    ws[f'A{row}'].font = Font(bold=True)
+    ws[f'B{row}'] = totals['Pendapatan'] - totals['Biaya']
+    ws[f'B{row}'].number_format = '"Rp "#,##0.00'
+    ws[f'B{row}'].font = Font(bold=True)
+    
+    # Save to buffer
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=profit_loss_{start_date}_{end_date}.xlsx"}
+    )
+
+@app.get("/api/reports/balance-sheet/pdf")
+async def generate_balance_sheet_pdf(
+    report_date: str = Query(..., description="Report date (YYYY-MM-DD)"),
+    current_user: dict = Depends(get_current_user)
+):
+    from io import BytesIO
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    
+    accounts = await db.accounts.find({"user_id": current_user["id"]}).to_list(None)
+    
+    # Group accounts by category
+    categories = {
+        "Aset": [],
+        "Utang": [],
+        "Modal": []
+    }
+    
+    for account in accounts:
+        category = account["category"]
+        if category in categories:
+            categories[category].append(account)
+    
+    # Create PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=72, bottomMargin=72)
+    
+    styles = getSampleStyleSheet()
+    story = []
+    
+    # Title
+    title = Paragraph(f"<b>{current_user['company_name']}</b><br/>NERACA<br/>Per {report_date}", 
+                     styles['Title'])
+    story.append(title)
+    story.append(Spacer(1, 20))
+    
+    # Assets section
+    asset_data = [['ASET', '']]
+    total_assets = 0
+    for account in categories['Aset']:
+        balance = float(account.get("balance", 0))
+        asset_data.append([account['name'], f"Rp {balance:,.2f}"])
+        total_assets += balance
+    asset_data.append(['TOTAL ASET', f"Rp {total_assets:,.2f}"])
+    
+    # Liabilities section  
+    asset_data.append(['', ''])
+    asset_data.append(['KEWAJIBAN & MODAL', ''])
+    
+    total_liabilities = 0
+    for account in categories['Utang']:
+        balance = float(account.get("balance", 0))
+        asset_data.append([account['name'], f"Rp {balance:,.2f}"])
+        total_liabilities += balance
+    
+    total_equity = 0
+    for account in categories['Modal']:
+        balance = float(account.get("balance", 0))
+        asset_data.append([account['name'], f"Rp {balance:,.2f}"])
+        total_equity += balance
+    
+    asset_data.append(['TOTAL KEWAJIBAN & MODAL', f"Rp {total_liabilities + total_equity:,.2f}"])
+    
+    table = Table(asset_data, colWidths=[4*inch, 2*inch])
+    table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+    ]))
+    
+    story.append(table)
+    doc.build(story)
+    buffer.seek(0)
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf", 
+        headers={"Content-Disposition": f"attachment; filename=balance_sheet_{report_date}.pdf"}
+    )
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
