@@ -631,6 +631,118 @@ async def generate_balance_sheet_pdf(
         headers={"Content-Disposition": f"attachment; filename=balance_sheet_{report_date}.pdf"}
     )
 
+# OCR Endpoint for Receipt Processing
+@app.post("/api/ocr/extract-receipt")
+async def extract_receipt_text(
+    image_data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        import base64
+        import io
+        import re
+        from PIL import Image
+        import easyocr
+        
+        # Decode base64 image
+        if 'image' not in image_data:
+            raise HTTPException(status_code=400, detail="Image data required")
+        
+        image_base64 = image_data['image']
+        if image_base64.startswith('data:image'):
+            image_base64 = image_base64.split(',')[1]
+        
+        image_bytes = base64.b64decode(image_base64)
+        image = Image.open(io.BytesIO(image_bytes))
+        
+        # Initialize OCR reader (supports Indonesian and English)
+        reader = easyocr.Reader(['en', 'id'])
+        
+        # Convert PIL image to numpy array
+        import numpy as np
+        image_array = np.array(image)
+        
+        # Perform OCR
+        result = reader.readtext(image_array)
+        
+        # Extract text
+        extracted_text = []
+        for (bbox, text, confidence) in result:
+            if confidence > 0.5:  # Only include high-confidence results
+                extracted_text.append(text.strip())
+        
+        full_text = ' '.join(extracted_text)
+        
+        # Try to extract key information
+        extracted_info = {
+            "full_text": full_text,
+            "merchant_name": "",
+            "total_amount": 0,
+            "date": "",
+            "items": []
+        }
+        
+        # Simple pattern matching for Indonesian receipts
+        # Extract total amount
+        amount_patterns = [
+            r'[Tt]otal[:\s]*[Rr][Pp][\s]*([0-9,\.]+)',
+            r'[Jj]umlah[:\s]*[Rr][Pp][\s]*([0-9,\.]+)',
+            r'[Tt]otal[:\s]*([0-9,\.]+)',
+            r'[Rr][Pp][\s]*([0-9,\.]+)',
+        ]
+        
+        for pattern in amount_patterns:
+            match = re.search(pattern, full_text, re.IGNORECASE)
+            if match:
+                amount_str = match.group(1).replace(',', '').replace('.', '')
+                try:
+                    if len(amount_str) > 2:
+                        # Assume last 2 digits are cents, convert to proper format
+                        extracted_info["total_amount"] = float(amount_str[:-2] + '.' + amount_str[-2:])
+                    else:
+                        extracted_info["total_amount"] = float(amount_str)
+                    break
+                except:
+                    continue
+        
+        # Extract date
+        date_patterns = [
+            r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',
+            r'(\d{2,4}[/-]\d{1,2}[/-]\d{1,2})',
+        ]
+        
+        for pattern in date_patterns:
+            match = re.search(pattern, full_text)
+            if match:
+                extracted_info["date"] = match.group(1)
+                break
+        
+        # Extract merchant name (usually at the top)
+        lines = full_text.split()
+        if lines:
+            # Take first few words as potential merchant name
+            extracted_info["merchant_name"] = ' '.join(lines[:3])
+        
+        return {
+            "success": True,
+            "extracted_data": extracted_info,
+            "raw_text": extracted_text
+        }
+        
+    except Exception as e:
+        logger.error(f"OCR Error: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "extracted_data": {
+                "full_text": "",
+                "merchant_name": "",
+                "total_amount": 0,
+                "date": "",
+                "items": []
+            }
+        }
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
