@@ -102,7 +102,18 @@ export default function AddTransaction() {
     });
 
     if (!result.canceled && result.assets[0].base64) {
-      setReceiptImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      const imageData = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setReceiptImage(imageData);
+      
+      // Process with OCR automatically
+      Alert.alert(
+        'Receipt OCR',
+        'Ingin menggunakan OCR untuk mengekstrak data dari receipt?',
+        [
+          { text: 'Tidak', style: 'cancel' },
+          { text: 'Ya, Scan', onPress: () => processWithOCR(imageData) },
+        ]
+      );
     }
   };
 
