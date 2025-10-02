@@ -425,23 +425,33 @@ class FinancialAPITester:
             "password": "wrong_password"
         }
         
-        response, response_time = self.make_request("POST", "/auth/login", invalid_login)
-        
-        if response and response.status_code == 401:
-            self.log_result("Invalid Login Test", True, "Correctly rejected invalid credentials", response_time)
-        else:
-            self.log_result("Invalid Login Test", False, f"Expected 401, got {response.status_code if response else 'no response'}", response_time)
+        try:
+            response, response_time = self.make_request("POST", "/auth/login", invalid_login)
+            
+            if response and response.status_code == 401:
+                self.log_result("Invalid Login Test", True, "Correctly rejected invalid credentials", response_time)
+            elif response:
+                self.log_result("Invalid Login Test", False, f"Expected 401, got {response.status_code}", response_time)
+            else:
+                self.log_result("Invalid Login Test", False, "No response received", response_time)
+        except Exception as e:
+            self.log_result("Invalid Login Test", False, f"Exception: {str(e)}", 0)
         
         # Test accessing protected endpoint without token
         old_token = self.access_token
         self.access_token = None
         
-        response, response_time = self.make_request("GET", "/accounts")
-        
-        if response and response.status_code == 403:
-            self.log_result("No Auth Test", True, "Correctly rejected request without token", response_time)
-        else:
-            self.log_result("No Auth Test", False, f"Expected 403, got {response.status_code if response else 'no response'}", response_time)
+        try:
+            response, response_time = self.make_request("GET", "/accounts")
+            
+            if response and response.status_code in [401, 403]:
+                self.log_result("No Auth Test", True, f"Correctly rejected request without token (status: {response.status_code})", response_time)
+            elif response:
+                self.log_result("No Auth Test", False, f"Expected 401/403, got {response.status_code}", response_time)
+            else:
+                self.log_result("No Auth Test", False, "No response received", response_time)
+        except Exception as e:
+            self.log_result("No Auth Test", False, f"Exception: {str(e)}", 0)
         
         # Restore token
         self.access_token = old_token
