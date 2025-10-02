@@ -296,6 +296,10 @@ async def create_transaction(transaction_data: TransactionCreate, current_user: 
     
     # Create transaction
     transaction_dict = transaction_data.dict()
+    # Convert date to datetime for MongoDB compatibility
+    if isinstance(transaction_dict['date'], date):
+        transaction_dict['date'] = datetime.combine(transaction_dict['date'], datetime.min.time())
+    
     transaction_dict.update({
         "id": str(uuid.uuid4()),
         "user_id": current_user["id"],
