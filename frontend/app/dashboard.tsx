@@ -189,7 +189,13 @@ export default function Dashboard() {
               <Text style={styles.actionText}>Tambah Transaksi</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => router.push({
+                pathname: '/add-transaction',
+                params: { token, user: userString, autoScan: 'true' }
+              })}
+            >
               <MaterialIcons name="photo-camera" size={32} color="#4CAF50" />
               <Text style={styles.actionText}>Scan Receipt</Text>
             </TouchableOpacity>
