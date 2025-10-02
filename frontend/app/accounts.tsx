@@ -64,7 +64,7 @@ export default function Accounts() {
 
   const loadAccounts = async () => {
     try {
-      const response = await fetch('http://localhost:8001/api/accounts', {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/accounts`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -83,7 +83,7 @@ export default function Accounts() {
 
   const loadAccountTransactions = async (accountId: string) => {
     try {
-      const response = await fetch(`http://localhost:8001/api/transactions?account_id=${accountId}`, {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/transactions?account_id=${accountId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

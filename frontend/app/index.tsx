@@ -26,7 +26,7 @@ export default function Index() {
 
     setLoginLoading(true);
     try {
-      const loginUrl = 'http://localhost:8001/api/auth/login';
+      const loginUrl = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/auth/login`;
       
       const response = await fetch(loginUrl, {
         method: 'POST',

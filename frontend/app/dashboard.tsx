@@ -54,7 +54,7 @@ export default function Dashboard() {
 
   const loadFinancialSummary = async () => {
     try {
-      const response = await fetch('http://localhost:8001/api/financial-summary', {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/financial-summary`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

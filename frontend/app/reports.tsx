@@ -29,9 +29,9 @@ export default function Reports() {
       const startOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
 
       if (type === 'profit-loss') {
-        url = `http://localhost:8001/api/reports/profit-loss/${format}?start_date=${startOfYear}&end_date=${today}`;
+        url = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/reports/profit-loss/${format}?start_date=${startOfYear}&end_date=${today}`;
       } else {
-        url = `http://localhost:8001/api/reports/balance-sheet/${format}?report_date=${today}`;
+        url = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/reports/balance-sheet/${format}?report_date=${today}`;
       }
 
       const response = await fetch(url, {

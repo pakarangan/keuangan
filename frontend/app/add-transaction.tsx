@@ -41,7 +41,7 @@ export default function AddTransaction() {
 
   const loadAccounts = async () => {
     try {
-      const response = await fetch('http://localhost:8001/api/accounts', {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/accounts`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -119,7 +119,7 @@ export default function AddTransaction() {
 
   const processWithOCR = async (imageBase64: string) => {
     try {
-      const response = await fetch('http://localhost:8001/api/ocr/extract-receipt', {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/ocr/extract-receipt`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -193,7 +193,7 @@ export default function AddTransaction() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8001/api/transactions', {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/transactions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
