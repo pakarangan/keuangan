@@ -1,49 +1,69 @@
+diff --git a/backend/server.py b/backend/server.py
+index fba772b..a11b450 100644
+--- a/backend/server.py
++++ b/backend/server.py
+@@ -296,6 +296,10 @@ async def create_transaction(transaction_data: TransactionCreate, current_user:
+     
+     # Create transaction
+     transaction_dict = transaction_data.dict()
++    # Convert date to datetime for MongoDB compatibility
++    if isinstance(transaction_dict['date'], date):
++        transaction_dict['date'] = datetime.combine(transaction_dict['date'], datetime.min.time())
++    
+     transaction_dict.update({
+         "id": str(uuid.uuid4()),
+         "user_id": current_user["id"],
 diff --git a/model.patch b/model.patch
-index b6617a6..e69de29 100644
+index b163a2d..e69de29 100644
 --- a/model.patch
 +++ b/model.patch
-@@ -1,44 +0,0 @@
--diff --git a/frontend/app/add-transaction.tsx b/frontend/app/add-transaction.tsx
--index e35aec3..3765733 100644
----- a/frontend/app/add-transaction.tsx
--+++ b/frontend/app/add-transaction.tsx
--@@ -72,7 +72,18 @@ export default function AddTransaction() {
--     });
-- 
--     if (!result.canceled && result.assets[0].base64) {
---      setReceiptImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
--+      const imageData = `data:image/jpeg;base64,${result.assets[0].base64}`;
--+      setReceiptImage(imageData);
--+      
--+      // Process with OCR automatically
--+      Alert.alert(
--+        'Receipt OCR',
--+        'Ingin menggunakan OCR untuk mengekstrak data dari receipt?',
--+        [
--+          { text: 'Tidak', style: 'cancel' },
--+          { text: 'Ya, Scan', onPress: () => processWithOCR(imageData) },
--+        ]
--+      );
--     }
--   };
-- 
--@@ -91,7 +102,18 @@ export default function AddTransaction() {
--     });
-- 
--     if (!result.canceled && result.assets[0].base64) {
---      setReceiptImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
--+      const imageData = `data:image/jpeg;base64,${result.assets[0].base64}`;
--+      setReceiptImage(imageData);
--+      
--+      // Process with OCR automatically
--+      Alert.alert(
--+        'Receipt OCR',
--+        'Ingin menggunakan OCR untuk mengekstrak data dari receipt?',
--+        [
--+          { text: 'Tidak', style: 'cancel' },
--+          { text: 'Ya, Scan', onPress: () => processWithOCR(imageData) },
--+        ]
--+      );
--     }
--   };
-- 
+@@ -1,49 +0,0 @@
+-diff --git a/model.patch b/model.patch
+-index b6617a6..e69de29 100644
+---- a/model.patch
+-+++ b/model.patch
+-@@ -1,44 +0,0 @@
+--diff --git a/frontend/app/add-transaction.tsx b/frontend/app/add-transaction.tsx
+--index e35aec3..3765733 100644
+----- a/frontend/app/add-transaction.tsx
+--+++ b/frontend/app/add-transaction.tsx
+--@@ -72,7 +72,18 @@ export default function AddTransaction() {
+--     });
+-- 
+--     if (!result.canceled && result.assets[0].base64) {
+---      setReceiptImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+--+      const imageData = `data:image/jpeg;base64,${result.assets[0].base64}`;
+--+      setReceiptImage(imageData);
+--+      
+--+      // Process with OCR automatically
+--+      Alert.alert(
+--+        'Receipt OCR',
+--+        'Ingin menggunakan OCR untuk mengekstrak data dari receipt?',
+--+        [
+--+          { text: 'Tidak', style: 'cancel' },
+--+          { text: 'Ya, Scan', onPress: () => processWithOCR(imageData) },
+--+        ]
+--+      );
+--     }
+--   };
+-- 
+--@@ -91,7 +102,18 @@ export default function AddTransaction() {
+--     });
+-- 
+--     if (!result.canceled && result.assets[0].base64) {
+---      setReceiptImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+--+      const imageData = `data:image/jpeg;base64,${result.assets[0].base64}`;
+--+      setReceiptImage(imageData);
+--+      
+--+      // Process with OCR automatically
+--+      Alert.alert(
+--+        'Receipt OCR',
+--+        'Ingin menggunakan OCR untuk mengekstrak data dari receipt?',
+--+        [
+--+          { text: 'Tidak', style: 'cancel' },
+--+          { text: 'Ya, Scan', onPress: () => processWithOCR(imageData) },
+--+        ]
+--+      );
+--     }
+--   };
+-- 
